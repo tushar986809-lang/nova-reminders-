@@ -14,15 +14,12 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install requests cryptography
-      - run: python check_reminders.py
+      - name: Load settings from the NOVA_ENV secret
         env:
-          NOVA_SECRET: ${{ secrets.NOVA_SECRET }}
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          TWILIO_SID: ${{ secrets.TWILIO_SID }}
-          TWILIO_TOKEN: ${{ secrets.TWILIO_TOKEN }}
-          TWILIO_FROM: ${{ secrets.TWILIO_FROM }}
-          MY_PHONE: ${{ secrets.MY_PHONE }}
+          NOVA_ENV: ${{ secrets.NOVA_ENV }}
+        run: |
+          printf '%s\n' "$NOVA_ENV" | tr -d '\r' | grep -E '^[A-Z_]+=' >> "$GITHUB_ENV"
+      - run: python check_reminders.py
       - run: |
           git config user.name "nova-bot"
           git config user.email "nova-bot@users.noreply.github.com"
