@@ -3,6 +3,7 @@ Sends due reminders to Telegram (and optionally a real phone call via Twilio).""
 import datetime as dt
 import json
 import os
+from xml.sax.saxutils import escape
 
 import requests
 
@@ -23,14 +24,20 @@ def telegram(text):
 
 
 def twilio_call(text):
-    sid, tok = os.getenv("TWILIO_SID"), os.getenv("TWILIO_TOKEN")
-    src, dst = os.getenv("TWILIO_FROM"), os.getenv("MY_PHONE")
+    sid, tok = (os.getenv("TWILIO_SID") or "").strip(), (os.getenv("TWILIO_TOKEN") or "").strip()
+    src, dst = (os.getenv("TWILIO_FROM") or "").strip(), (os.getenv("MY_PHONE") or "").strip()
     if not (sid and tok and src and dst):
         return False
-    twiml = f"<Response><Say language='en-IN'>Reminder from Nova. {text}</Say></Response>"
+    twiml = f"<Response><Say language='en-IN'>Reminder from Nova. {escape(text)}</Say></Response>"
     r = requests.post(f"https://api.twilio.com/2010-04-01/Accounts/{sid}/Calls.json",
                       auth=(sid, tok), data={"To": dst, "From": src, "Twiml": twiml}, timeout=20)
     print("twilio:", r.status_code)
+    if not r.ok:  # asli wajah dikhao (isme koi secret nahi hota)
+        try:
+            j = r.json()
+            print("twilio error:", j.get("code"), j.get("message"))
+        except ValueError:
+            print("twilio error text:", r.text[:300])
     return r.ok
 
 
