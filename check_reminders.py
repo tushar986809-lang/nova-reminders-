@@ -3,6 +3,7 @@ Sends due reminders to Telegram (and optionally a real phone call via Twilio).""
 import datetime as dt
 import json
 import os
+from urllib.parse import urlencode
 from xml.sax.saxutils import escape
 
 import requests
@@ -28,9 +29,15 @@ def twilio_call(text):
     src, dst = (os.getenv("TWILIO_FROM") or "").strip(), (os.getenv("MY_PHONE") or "").strip()
     if not (sid and tok and src and dst):
         return False
-    twiml = f"<Response><Say language='en-IN'>Reminder from Nova. {escape(text)}</Say></Response>"
+    bin_url = (os.getenv("TWIML_URL") or "").strip()
+    if bin_url:  # trial account: TwiML Bin ka link, reminder ka text link ke saath jata hai
+        data = {"To": dst, "From": src, "Method": "GET",
+                "Url": bin_url + ("&" if "?" in bin_url else "?") + urlencode({"text": text})}
+    else:
+        twiml = f"<Response><Say language='en-IN'>Reminder from Nova. {escape(text)}</Say></Response>"
+        data = {"To": dst, "From": src, "Twiml": twiml}
     r = requests.post(f"https://api.twilio.com/2010-04-01/Accounts/{sid}/Calls.json",
-                      auth=(sid, tok), data={"To": dst, "From": src, "Twiml": twiml}, timeout=20)
+                      auth=(sid, tok), data=data, timeout=20)
     print("twilio:", r.status_code)
     if not r.ok:  # asli wajah dikhao (isme koi secret nahi hota)
         try:
