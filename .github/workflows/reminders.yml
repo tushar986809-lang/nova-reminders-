@@ -18,7 +18,9 @@ jobs:
         env:
           NOVA_ENV: ${{ secrets.NOVA_ENV }}
         run: |
-          printf '%s\n' "$NOVA_ENV" | tr -d '\r' | grep -E '^[A-Z_]+=' >> "$GITHUB_ENV"
+          printf '%s\n' "$NOVA_ENV" | tr -d '\r' | sed 's/^[[:space:]]*//' | grep -E '^[A-Za-z_][A-Za-z0-9_]*=' >> "$GITHUB_ENV" || true
+          echo "Mila hua settings (sirf naam):"
+          printf '%s\n' "$NOVA_ENV" | tr -d '\r' | sed 's/^[[:space:]]*//' | grep -oE '^[A-Za-z_][A-Za-z0-9_]*=' || echo "KUCH NAHI MILA: NOVA_ENV khaali hai ya format galat hai"
       - run: python check_reminders.py
       - run: |
           git config user.name "nova-bot"
